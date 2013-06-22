@@ -53,7 +53,8 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
 	audio.primary.tuna \
 	audio.a2dp.default \
-	audio.usb.default
+	audio.usb.default \
+	audio.r_submix.default
 
 PRODUCT_COPY_FILES += \
 	device/samsung/tuna/audio/audio_policy.conf:system/etc/audio_policy.conf \
