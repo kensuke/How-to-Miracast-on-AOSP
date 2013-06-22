@@ -24,4 +24,6 @@
     <!-- The restoring is handled by modem if it is true -->
     <bool translatable="false" name="skip_restoring_network_selection">true</bool>
 
+    <bool name="config_enableWifiDisplay">true</bool>
+
 </resources>
