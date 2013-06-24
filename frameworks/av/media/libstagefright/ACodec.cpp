@@ -38,12 +38,6 @@
 
 #include "include/avc_utils.h"
 
-//#ifdef ENHANCED_DOMX
-#include <OMX_TI_IVCommon.h>
-#include <OMX_TI_Index.h>
-#include <OMX_TI_Video.h>
-//#endif
-
 namespace android {
 
 template<class T>
@@ -896,11 +890,9 @@ status_t ACodec::configureCodec(
         OMX_INDEXTYPE index;
         err = mOMX->getExtensionIndex(
                 mNode,
-//                "OMX.google.android.index.prependSPSPPSToIDRFrames",
-                "OMX_TI_IndexParamVideoNALUsettings",
+                "OMX.google.android.index.prependSPSPPSToIDRFrames",
                 &index);
 
-#if 0
         if (err == OK) {
             PrependSPSPPSToIDRFramesParams params;
             InitOMXParams(&params);
@@ -915,28 +907,6 @@ status_t ACodec::configureCodec(
                   "IDR frames. (err %d)", err);
 
             return err;
-        }
-#endif
-
-        if (err == OK) {
-            ALOGV("Enable SPS/PPS with IDR frame");
-            OMX_VIDEO_PARAM_AVCNALUCONTROLTYPE nalControl;
-            InitOMXParams(&nalControl);
-            nalControl.nPortIndex = kPortIndexOutput;
-
-            status_t err = mOMX->getParameter(mNode, index, &nalControl, sizeof(nalControl));
-            if (err != OK) {
-                ALOGE("configureCodec() err[%d] mOMX->getParameter(mNode, index, &nalControl, sizeof(nalControl))", err);
-                return err;
-            }
-
-            nalControl.nIDR = 0x1A0; //enable SPS,PPS with IDR
-
-            err = mOMX->setParameter(mNode, index, &nalControl, sizeof(nalControl));
-            if (err != OK) {
-                ALOGE("configureCodec() err[%d] mOMX->setParameter(mNode, index, &nalControl, sizeof(nalControl))", err);
-                return err;
-            }
         }
     }
 
@@ -1293,7 +1263,7 @@ status_t ACodec::setupG711Codec(bool encoder, int32_t numChannels) {
 
 status_t ACodec::setupFlacCodec(
         bool encoder, int32_t numChannels, int32_t sampleRate, int32_t compressionLevel) {
-#if 0
+
     if (encoder) {
         OMX_AUDIO_PARAM_FLACTYPE def;
         InitOMXParams(&def);
@@ -1317,10 +1287,6 @@ status_t ACodec::setupFlacCodec(
             encoder ? kPortIndexInput : kPortIndexOutput,
             sampleRate,
             numChannels);
-#endif
-
-    ALOGE("setupFlacCodec() SKIP!! encoder[%d] numChannels[%d] sampleRate[%d] compressionLevel[%d]", encoder, numChannels, sampleRate, compressionLevel);
-    return -1;
 }
 
 status_t ACodec::setupRawAudioFormat(
@@ -1446,10 +1412,8 @@ status_t ACodec::setSupportedOutputFormat() {
            || format.eColorFormat == OMX_COLOR_FormatYUV420SemiPlanar
            || format.eColorFormat == OMX_COLOR_FormatCbYCrY
            || format.eColorFormat == OMX_TI_COLOR_FormatYUV420PackedSemiPlanar
-//           || format.eColorFormat == OMX_QCOM_COLOR_FormatYVU420SemiPlanar
-//           || format.eColorFormat == OMX_QCOM_COLOR_FormatYUV420PackedSemiPlanar64x32Tile2m8ka);
-         );
-ALOGD("setSupportedOutputFormat() SKIP!! eColorFormat[%d] OMX_QCOM_COLOR_FormatYVU420SemiPlanar | OMX_QCOM_COLOR_FormatYUV420PackedSemiPlanar64x32Tile2m8ka", format.eColorFormat);
+           || format.eColorFormat == OMX_QCOM_COLOR_FormatYVU420SemiPlanar
+           || format.eColorFormat == OMX_QCOM_COLOR_FormatYUV420PackedSemiPlanar64x32Tile2m8ka);
 
     return mOMX->setParameter(
             mNode, OMX_IndexParamVideoPortFormat,
@@ -1467,9 +1431,7 @@ static status_t GetVideoCodingTypeFromMime(
     } else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_MPEG2, mime)) {
         *codingType = OMX_VIDEO_CodingMPEG2;
     } else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_VPX, mime)) {
-//        *codingType = OMX_VIDEO_CodingVPX;
-        *codingType = OMX_VIDEO_CodingUnused;
-        ALOGE("GetVideoCodingTypeFromMime() SKIP!! MEDIA_MIMETYPE_VIDEO_VPX");
+        *codingType = OMX_VIDEO_CodingVPX;
     } else {
         *codingType = OMX_VIDEO_CodingUnused;
         return ERROR_UNSUPPORTED;
@@ -1907,9 +1869,7 @@ status_t ACodec::setupAVCEncoderParameters(const sp<AMessage> &msg) {
         if (err != OK) {
             ALOGE("Setting intra macroblock refresh mode (%d) failed: 0x%x",
                     err, intraRefreshMode);
-
-            //return err;
-            ALOGE("setupAVCEncoderParameters() SKIP!! setCyclicIntraMacroblockRefresh()[%d]", err);
+            return err;
         }
     }
 
