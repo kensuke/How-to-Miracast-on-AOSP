@@ -950,6 +950,9 @@ status_t WifiDisplaySource::onReceiveClientData(const sp<AMessage> &msg) {
     AString uri;
     data->getRequestField(0, &method);
 
+    ALOGI("onReceiveClientData() session[%d] method[%s]  <== <== <==", sessionID, method.c_str());
+    ALOGI("[%s]", data->debugString().c_str());
+
     int32_t cseq;
     if (!data->findInt32("cseq", &cseq)) {
         sendErrorResponse(sessionID, "400 Bad Request", -1 /* cseq */);
