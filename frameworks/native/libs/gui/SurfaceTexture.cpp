@@ -239,6 +239,16 @@ status_t SurfaceTexture::updateTexImage(BufferRejecter* rejecter, bool skipSync)
     if (err == NO_ERROR) {
         int buf = item.mBuf;
 
+        if (rejecter && (
+            ((mSlots[buf].mGraphicBuffer->getWidth() == 1408) && (mSlots[buf].mGraphicBuffer->getHeight() == 816)) // Source:Nexus 4
+         || ((mSlots[buf].mGraphicBuffer->getWidth() == 1280) && (mSlots[buf].mGraphicBuffer->getHeight() == 720)) // Source:Galaxy Nexus
+         || ((mSlots[buf].mGraphicBuffer->getWidth() ==  800) && (mSlots[buf].mGraphicBuffer->getHeight() == 480)) // ?
+        )) {
+            // item.mTransform |= Transform::ROT_90;
+            item.mTransform |= 0x04;
+            ST_LOGW("updateTexImage() Force Transform::ROT_90 [%d, %d]", mSlots[buf].mGraphicBuffer->getWidth(), mSlots[buf].mGraphicBuffer->getHeight());
+        }
+
         // we call the rejecter here, in case the caller has a reason to
         // not accept this buffer. this is used by SurfaceFlinger to
         // reject buffers which have the wrong size
