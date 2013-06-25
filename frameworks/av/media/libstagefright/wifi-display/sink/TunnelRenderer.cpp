@@ -339,7 +339,7 @@ void TunnelRenderer::initPlayer() {
         SurfaceComposerClient::getDisplayInfo(0, &info);
         ssize_t displayWidth = info.w;
         ssize_t displayHeight = info.h;
-        ALOGI("initPlayer() defailt size[%d, %d]", info.w, info.h);
+        ALOGI("initPlayer() default size[%d, %d]", info.w, info.h);
 
         sp<IBinder> display = SurfaceComposerClient::getBuiltInDisplay(ISurfaceComposer::eDisplayIdMain);
         SurfaceComposerClient::getDisplayInfo(display, &info);
