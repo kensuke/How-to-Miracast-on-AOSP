@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WFD</string>
+
+    <string name="lbl_Source">Source</string>
+    <string name="lbl_Sink">Sink</string>
+    <string name="lbl_IP">(IP Address)</string>
+    <!-- 19000 = default port -->
+    <string name="lbl_Port">19000</string>
+    <string name="lbl_connect">connect</string>
+    <string name="lbl_killwfd">kill wfd</string>
+
+    <string name="err_no_ip">No Valid Networks. Try Connect a Network.</string>
+</resources>
