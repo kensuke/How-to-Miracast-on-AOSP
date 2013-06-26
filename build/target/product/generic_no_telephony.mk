@@ -43,7 +43,8 @@ PRODUCT_PACKAGES := \
     CalendarProvider \
     bluetooth-health \
     hostapd \
-    wpa_supplicant.conf
+    wpa_supplicant.conf \
+    WFD
 
 PRODUCT_PACKAGES += \
     audio \
