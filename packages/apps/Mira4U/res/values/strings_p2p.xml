@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+<!-- 
+    <string name="app_name">WiFiDirectTestApp</string>
+    <string name="app_about">About this App...</string>
+ -->
+
+    <string name="button_broadcast_regist">BroadcastReceiver Registered</string>
+    <string name="button_broadcast_unregist">BroadcastReceiver UnRegistered</string>
+    <string name="button_broadcast_state_regist">STATE_CHANGED Registered</string>
+    <string name="button_broadcast_state_unregist">STATE_CHANGED UnRegistered</string>
+    <string name="button_broadcast_connection_regist">CONNECTION_CHANGED Registered</string>
+    <string name="button_broadcast_connection_unregist">CONNECTION_CHANGED UnRegistered</string>
+    <string name="button_broadcast_peers_regist">PEERS_CHANGED Registered</string>
+    <string name="button_broadcast_peers_unregist">PEERS_CHANGED UnRegistered</string>
+    <string name="button_broadcast_this_regist">THIS_DEVICE_CHANGED Registered</string>
+    <string name="button_broadcast_this_unregist">THIS_DEVICE_CHANGED UnRegistered</string>
+
+    <string name="button_getSystemService">getSystemService</string>
+    <string name="button_initialize">initialize</string>
+    <string name="button_discoverPeers">discoverPeers</string>
+    <string name="button_requestPeers">requestPeers</string>
+    <string name="spinner_peers">Peers</string>
+    <string name="button_connect">connect</string>
+    <string name="spinner_go">Group Owner Intent</string>
+    <string name="spinner_wps">Wi-Fi Protected Setup</string>
+    <string name="button_cancelConnect">cancelConnect</string>
+    <string name="button_createGroup">createGroup</string>
+    <string name="button_removeGroup">removeGroup</string>
+    <string name="button_requestConnectionInfo">requestConnectionInfo</string>
+    <string name="button_requestGroupInfo">requestGroupInfo</string>
+
+    <string name="button_gotosetting">Go To Wi-Fi Setting Menu</string>
+    <string name="button_resetlog">Reset Log</string>
+    <string name="button_savelog">Save Log</string>
+    <string name="button_colorlog">Color Log</string>
+    <string name="button_monolog">Mono Log</string>
+    <string name="button_autoscroll_on">AutoScroll On</string>
+    <string name="button_autoscroll_off">AutoScroll Off</string>
+
+<!-- array.xml ^^;; -->
+    <string-array name="spinner_go_entry">
+        <item>-1:system can choose an appropriate value</item>
+        <item>0:least inclination to be a group owner</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+        <item>9</item>
+        <item>10</item>
+        <item>11</item>
+        <item>12</item>
+        <item>13</item>
+        <item>14</item>
+        <item>15:highest inclination to be a group owner</item>
+    </string-array>
+
+    <string-array name="spinner_wps_entry">
+        <item>PBC : Push button configuration</item>
+        <item>DISPLAY : Display pin method configuration</item>
+        <item>KEYPAD : Keypad pin method configuration</item>
+        <item>LABEL : Label pin method configuration</item>
+        <item>INVALID : Invalid configuration</item>
+    </string-array>
+
+</resources>

@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:baselineAligned="false"
+    android:background="#000000"
+    android:orientation="vertical" >
+
+    <!-- API test button area -->
+
+    <ScrollView
+        android:id="@+id/layout_apibuttons"
+        android:layout_width="fill_parent"
+        android:layout_height="0dip"
+        android:layout_weight="1"
+        android:background="#ff0000"
+        android:fadeScrollbars="false"
+        android:orientation="vertical" >
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="4dip"
+            android:orientation="vertical" >
+
+            <ToggleButton
+                android:id="@+id/toggle_bc_all"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dip"
+                android:checked="true"
+                android:textColor="#ffffff"
+                android:textOff="@string/button_broadcast_unregist"
+                android:textOn="@string/button_broadcast_regist" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dip"
+                android:onClick="onClickDiscoverPeers"
+                android:textColor="#ffffff"
+                android:text="@string/button_discoverPeers" />
+
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" >
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:onClick="onClickRequestPeers"
+                    android:textColor="#ffffff"
+                    android:text="@string/button_requestPeers" />
+
+                <Spinner
+                    android:id="@+id/spinner_peers"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:drawSelectorOnTop="true"
+                    android:prompt="@string/spinner_peers"
+                    android:textColor="#ffffff"
+                    android:spinnerMode="dialog" />
+            </LinearLayout>
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onClickCancelConnect"
+                android:textColor="#ffffff"
+                android:text="@string/button_cancelConnect" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dip"
+                android:onClick="onClickCreateGroup"
+                android:textColor="#ffffff"
+                android:text="@string/button_createGroup" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onClickRemoveGroup"
+                android:textColor="#ffffff"
+                android:text="@string/button_removeGroup" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dip"
+                android:onClick="onClickRequestConnectionInfo"
+                android:textColor="#ffffff"
+                android:text="@string/button_requestConnectionInfo" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onClickRequestGroupInfo"
+                android:textColor="#ffffff"
+                android:text="@string/button_requestGroupInfo" />
+
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dip"
+                android:gravity="right"
+                android:orientation="vertical" >
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:onClick="onClickGotoWiFiSetting"
+                    android:textColor="#ffffff"
+                    android:text="@string/button_gotosetting" />
+
+                <LinearLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dip"
+                    android:gravity="right"
+                    android:orientation="horizontal" >
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:onClick="onClickResetLog"
+                        android:textColor="#ffffff"
+                        android:text="@string/button_resetlog" />
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:enabled="false"
+                        android:onClick="onClickSaveLog"
+                        android:textColor="#ffffff"
+                        android:text="@string/button_savelog" />
+                </LinearLayout>
+
+                <RadioGroup
+                    android:id="@+id/radiogroup_logkind"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="4dip"
+                    android:orientation="horizontal" >
+
+                    <RadioButton
+                        android:id="@+id/radiobutton_html"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:textColor="#ffffff"
+                        android:text="@string/button_colorlog" />
+
+                    <RadioButton
+                        android:id="@+id/radiobutton_mono"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="#ffffff"
+                        android:text="@string/button_monolog" />
+                </RadioGroup>
+
+                <ToggleButton
+                    android:id="@+id/toggle_autoscroll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:textColor="#ffffff"
+                    android:textOff="@string/button_autoscroll_off"
+                    android:textOn="@string/button_autoscroll_on" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- log area -->
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="0dip"
+        android:layout_weight="1"
+        android:orientation="vertical" >
+
+        <ScrollView
+            android:id="@+id/scrollview_log"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:fadeScrollbars="false"
+            android:scrollbars="vertical" >
+
+            <TextView
+                android:id="@+id/textView_log"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#ffeeee"
+                android:textSize="18sp" />
+        </ScrollView>
+    </LinearLayout>
+
+</LinearLayout>

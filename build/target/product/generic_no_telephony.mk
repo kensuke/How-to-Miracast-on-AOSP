@@ -44,7 +44,8 @@ PRODUCT_PACKAGES := \
     bluetooth-health \
     hostapd \
     wpa_supplicant.conf \
-    WFD
+    WFD \
+    Mira4U
 
 PRODUCT_PACKAGES += \
     audio \

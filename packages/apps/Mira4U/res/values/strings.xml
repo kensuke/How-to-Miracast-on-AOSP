@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Miracast for You</string>
+    <string name="p2p_name">P2p Sink</string>
+
+    <string name="lbl_Source">Source</string>
+    <string name="lbl_Sink">Sink</string>
+    <string name="lbl_IP">(IP Address)</string>
+    <!-- 7236 = default port -->
+    <string name="lbl_Port">7236</string>
+    <string name="lbl_fwwifisource">F/W Wi-Fi Source listen on _ </string>
+    <string name="lbl_fwwfdsource">F/W Wi-Fi wfd Source listen on _ </string>
+    <string name="lbl_fwwifisink">F/W Wi-Fi Sink connect to _ </string>
+    <string name="lbl_fwp2psink">F/W p2p Sink Activity</string>
+
+    <string name="lbl_killwfd">kill wfd</string>
+
+    <string name="err_no_ip">No Valid Networks. Try Connect a Network.</string>
+</resources>
