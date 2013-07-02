@@ -63,7 +63,6 @@
         android:ems="10"
         android:text="@string/lbl_Port"
         android:inputType="number"
-        android:enabled="false"
         />
 
     <Button

@@ -62,7 +62,7 @@ public class MainActivity extends Activity {
     private void init() {
         initRadio();
         setIPAddressToRatingBar();
-        initIPEditText();
+        initEditTexts();
         initCmdButton();
         initFinishButton();
     }
@@ -177,12 +177,10 @@ public class MainActivity extends Activity {
                 // a network interface has some addresses
                 for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
                     InetAddress inetAddress = enumIpAddr.nextElement();
-                    if (inetAddress.isLoopbackAddress()) { // skip loopback
-                                                           // address
+                    if (inetAddress.isLoopbackAddress()) { // skip loopback address
                         continue;
                     }
-                    if (!(inetAddress instanceof Inet4Address)) { // skip !IPv4
-                                                                  // address
+                    if (!(inetAddress instanceof Inet4Address)) { // skip !IPv4 address
                         continue;
                     }
 
@@ -217,9 +215,26 @@ public class MainActivity extends Activity {
     /**
      * notify on change IP addres textbox
      */
-    private void initIPEditText() {
+    private void initEditTexts() {
         AutoCompleteTextView actv = (AutoCompleteTextView) findViewById(R.id.autoCompleteTextView1);
         actv.setOnKeyListener(new OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                // pushed enter key
+                if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
+                    // hide keyboard
+                    InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    inputMethodManager.hideSoftInputFromWindow(v.getWindowToken(), 0);
+
+                    changeCmdButton();
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        EditText et = (EditText)findViewById(R.id.editText1);
+        et.setOnKeyListener(new OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
                 // pushed enter key
