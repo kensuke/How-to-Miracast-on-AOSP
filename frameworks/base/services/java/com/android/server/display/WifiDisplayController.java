@@ -232,8 +232,52 @@ final class WifiDisplayController implements DumpUtils.Dump {
         for (WifiP2pDevice device : mAvailableWifiDisplayPeers) {
             if (device.deviceAddress.equals(address)) {
                 connect(device);
+                Slog.d(TAG, "requestConnect()[p2p] " + device);
+                return;
             }
         }
+
+        listenWiFiDisplay(address);
+    }
+
+    private void listenWiFiDisplay(final String ipaddr_port) {
+        Slog.d(TAG, "listenWiFiDisplay()[wifi] " + ipaddr_port);
+        unadvertiseDisplay();
+
+        mAudioManager.setRemoteSubmixOn(false, REMOTE_SUBMIX_ADDRESS);
+        final String iface = ipaddr_port;
+        mRemoteDisplayInterface = iface;
+
+        Slog.i(TAG, "Listening for RTSP connection on " + iface + " from Wifi display Sink");
+
+        mRemoteDisplay = RemoteDisplay.listen(iface, new RemoteDisplay.Listener() {
+            @Override
+            public void onDisplayConnected(Surface surface, int width, int height, int flags) {
+                Slog.i(TAG, "listenWiFiDisplay() onDisplayConnected()");
+                mRemoteDisplayConnected = true;
+                mHandler.removeCallbacks(mRtspTimeout);
+                mAudioManager.setRemoteSubmixOn(true, REMOTE_SUBMIX_ADDRESS);
+                advertiseDisplay(new WifiDisplay(ipaddr_port, "Sink", null), surface, width, height, flags);
+            }
+
+            @Override
+            public void onDisplayDisconnected() {
+                Slog.i(TAG, "listenWiFiDisplay() onDisplayDisconnected()");
+                mHandler.removeCallbacks(mRtspTimeout);
+                disconnect();
+                unadvertiseDisplay();
+            }
+
+            @Override
+            public void onDisplayError(int error) {
+                Slog.i(TAG, "listenWiFiDisplay() onDisplayError()");
+                mHandler.removeCallbacks(mRtspTimeout);
+                handleConnectionFailure(false);
+                unadvertiseDisplay();
+            }
+        }, mHandler);
+
+        mHandler.postDelayed(mRtspTimeout, RTSP_TIMEOUT_SECONDS * 1000);
     }
 
     public void requestDisconnect() {
