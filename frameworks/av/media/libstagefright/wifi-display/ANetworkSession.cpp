@@ -961,7 +961,7 @@ status_t ANetworkSession::sendRequest(
 
     interrupt();
 
-    ALOGD("sendRequest() session[%d] result[%d] --> --> -->", sessionID, err);
+    ALOGD("--> --> --> sendRequest() session[%d] result[%d]", sessionID, err);
     ALOGD("[%s]", (char*)data);
 
     return err;
