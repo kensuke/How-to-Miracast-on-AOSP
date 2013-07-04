@@ -1,5 +1,3 @@
+See https://github.com/kensuke/How-to-Miracast-on-AOSP/wiki
 
-Base AOSP Version
-https://android.googlesource.com/platform/manifest/+/android-4.2.2_r1.2
-
-
+Everything you want..
