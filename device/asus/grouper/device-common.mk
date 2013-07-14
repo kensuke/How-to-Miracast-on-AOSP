@@ -75,6 +75,7 @@ PRODUCT_PACKAGES := \
     power.grouper \
     audio.a2dp.default \
     audio.usb.default \
+    audio.r_submix.default \
     librs_jni \
     setup_fs \
     l2ping \
