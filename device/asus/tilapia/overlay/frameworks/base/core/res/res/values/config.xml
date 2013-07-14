@@ -238,4 +238,6 @@
     <!-- reference volume index for music stream to limit headphone volume and display warning -->
     <integer name="config_safe_media_volume_index">6</integer>
 
+    <bool name="config_enableWifiDisplay">true</bool>
+
 </resources>
