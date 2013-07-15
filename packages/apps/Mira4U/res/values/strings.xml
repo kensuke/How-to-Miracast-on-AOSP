@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">Miracast for You</string>
     <string name="p2p_name">P2p Sink</string>
+    <string name="set_name">Settings</string>
 
     <string name="lbl_Source">Source</string>
     <string name="lbl_Sink">Sink</string>
@@ -16,4 +17,13 @@
     <string name="lbl_killwfd">kill wfd</string>
 
     <string name="err_no_ip">No Valid Networks. Try Connect a Network.</string>
+
+<!-- Settings -->
+    <string name="checkbox_log">Diabled Log Output</string>
+    <string name="checkbox_hdcp">Skip HDCP Authentication</string>
+    <string name="checkbox_timeout">Extend Timeout Time</string>
+
+    <string name="checkbox_log_summary">for Better Performance</string>
+    <string name="checkbox_hdcp_summary">If HDCP Authentication Error Occurred, Try This Option</string>
+    <string name="checkbox_timeout_summary">RTSP Timeout Time Extend(15 -> 30secs)</string>
 </resources>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <CheckBoxPreference
+        android:key="persist.sys.wfd.disablelog"
+        android:title="@string/checkbox_log"
+        android:summary="@string/checkbox_log_summary" />
+
+    <CheckBoxPreference
+        android:key="persist.sys.wfd.nohdcp"
+        android:title="@string/checkbox_hdcp"
+        android:summary="@string/checkbox_hdcp_summary" />
+
+    <CheckBoxPreference
+        android:key="persist.sys.wfd.longtimeout"
+        android:title="@string/checkbox_timeout"
+        android:summary="@string/checkbox_timeout_summary" />
+
+</PreferenceScreen>

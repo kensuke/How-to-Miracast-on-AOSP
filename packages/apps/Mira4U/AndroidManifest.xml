@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.mira4u"
+    android:sharedUserId="android.uid.system"
     android:versionCode="1"
-    android:versionName="1.0" >
+    android:versionName="1.1" >
 
     <uses-sdk
         android:minSdkVersion="17"
@@ -17,6 +18,9 @@
     <uses-permission android:name="android.permission.ACCESS_SURFACE_FLINGER"/>
     <uses-permission android:name="android.permission.CONFIGURE_WIFI_DISPLAY"/>
     <uses-permission android:name="android.permission.CONTROL_WIFI_DISPLAY"/>
+
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
 
     <application
         android:allowBackup="true"
@@ -39,6 +43,12 @@
             android:label="@string/p2p_name"
             android:screenOrientation="portrait"
             >
+        </activity>
+
+        <activity
+            android:name="com.example.mira4u.SettingsActivity"
+            android:label="@string/set_name"
+            android:screenOrientation="portrait" >
         </activity>
 
     </application>

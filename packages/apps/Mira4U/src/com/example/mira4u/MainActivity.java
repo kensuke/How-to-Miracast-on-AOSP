@@ -20,6 +20,8 @@ import android.content.Intent;
 import android.hardware.display.DisplayManager;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -182,7 +184,7 @@ public class MainActivity extends Activity {
         findViewById(R.id.button3).setEnabled(false);
         findViewById(R.id.button31).setEnabled(false);
         findViewById(R.id.button4).setEnabled(false);
-        findViewById(R.id.button5).setEnabled(false);
+        //findViewById(R.id.button5).setEnabled(false); // skip p2p JNI Sink disabled
     }
 
     /**
@@ -575,6 +577,41 @@ public class MainActivity extends Activity {
         startActivity(i);
     }
 
+    /**
+     * invoke Settings Activity
+     */
+    private void gotoSettings() {
+        String pac = "com.example.mira4u";
+
+        Intent i = new Intent();
+        i.setClassName(pac, pac + ".SettingsActivity");
+        startActivity(i);
+    }
+
+    /**
+     * onCreateOptionsMenu
+     */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu){
+        menu.add(Menu.NONE, 0, Menu.NONE, getString(R.string.set_name));
+        return true;
+    }
+
+    /**
+     * onOptionsItemSelected
+     */
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+        case 0:
+            gotoSettings();
+            return true;
+
+        default:
+            Log.w(TAG, "onOptionsItemSelected() Unknown Menu Id Passed["+item.getItemId()+"]");
+            return true;
+        }
+    }
+ 
     static {
         System.loadLibrary("Mira4U");
     }
