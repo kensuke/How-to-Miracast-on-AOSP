@@ -34,6 +34,8 @@
 #include <media/stagefright/foundation/hexdump.h>
 #include <media/stagefright/Utils.h>
 
+#include <cutils/properties.h> // for property_get
+
 namespace android {
 
 static const size_t kMaxUDPSize = 1500;
@@ -559,6 +561,12 @@ void ANetworkSession::Session::notify(NotificationReason reason) {
 ANetworkSession::ANetworkSession()
     : mNextSessionID(1) {
     mPipeFd[0] = mPipeFd[1] = -1;
+
+    // diabled send log output
+    char val[PROPERTY_VALUE_MAX];
+    mDiabledLog = property_get("persist.sys.wfd.disablelog", val, NULL) && strcmp("1", val) == 0;
+
+    ALOGD("ANetworkSession() mDiabledLog[%d] log-output[%s]", mDiabledLog, mDiabledLog?"false":"true");
 }
 
 ANetworkSession::~ANetworkSession() {
@@ -961,8 +969,10 @@ status_t ANetworkSession::sendRequest(
 
     interrupt();
 
-    ALOGD("--> --> --> sendRequest() session[%d] result[%d]", sessionID, err);
-    ALOGD("[%s]", (char*)data);
+    if (!mDiabledLog) {
+        ALOGD("--> --> --> sendRequest() session[%d] result[%d]", sessionID, err);
+        ALOGD("[%s]", (char*)data);
+    }
 
     return err;
 }
