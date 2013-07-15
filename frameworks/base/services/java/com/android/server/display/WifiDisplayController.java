@@ -42,6 +42,7 @@ import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.GroupInfoListener;
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
 import android.os.Handler;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.util.Slog;
 import android.view.Surface;
@@ -242,21 +243,20 @@ final class WifiDisplayController implements DumpUtils.Dump {
 
     private void listenWiFiDisplay(final String ipaddr_port) {
         Slog.d(TAG, "listenWiFiDisplay()[wifi] " + ipaddr_port);
+        setRemoteSubmixOn(false);
         unadvertiseDisplay();
 
-        mAudioManager.setRemoteSubmixOn(false, REMOTE_SUBMIX_ADDRESS);
         final String iface = ipaddr_port;
         mRemoteDisplayInterface = iface;
+        setRemoteSubmixOn(true);
 
         Slog.i(TAG, "Listening for RTSP connection on " + iface + " from Wifi display Sink");
-
         mRemoteDisplay = RemoteDisplay.listen(iface, new RemoteDisplay.Listener() {
             @Override
             public void onDisplayConnected(Surface surface, int width, int height, int flags) {
                 Slog.i(TAG, "listenWiFiDisplay() onDisplayConnected()");
                 mRemoteDisplayConnected = true;
                 mHandler.removeCallbacks(mRtspTimeout);
-                mAudioManager.setRemoteSubmixOn(true, REMOTE_SUBMIX_ADDRESS);
                 advertiseDisplay(new WifiDisplay(ipaddr_port, "Sink", null), surface, width, height, flags);
             }
 
@@ -520,7 +520,7 @@ final class WifiDisplayController implements DumpUtils.Dump {
         // have disconnected from the old one.
         if (mRemoteDisplay != null && mConnectedDevice != mDesiredDevice) {
             Slog.i(TAG, "Stopped listening for RTSP connection on " + mRemoteDisplayInterface
-                    + " from Wifi display: " + mConnectedDevice.deviceName);
+                    + " from Wifi display: " + (mConnectedDevice == null ? "(null)" : mConnectedDevice.deviceName));
 
             mRemoteDisplay.dispose();
             mRemoteDisplay = null;
@@ -539,7 +539,7 @@ final class WifiDisplayController implements DumpUtils.Dump {
             return; // wait for asynchronous callback
         }
         if (mConnectedDevice != null && mConnectedDevice != mDesiredDevice) {
-            Slog.i(TAG, "Disconnecting from Wifi display: " + mConnectedDevice.deviceName);
+            Slog.i(TAG, "Disconnecting from Wifi display: " + (mConnectedDevice == null ? "(null)" : mConnectedDevice.deviceName));
             mDisconnectingDevice = mConnectedDevice;
             mConnectedDevice = null;
 
@@ -718,7 +718,12 @@ final class WifiDisplayController implements DumpUtils.Dump {
                 }
             }, mHandler);
 
-            mHandler.postDelayed(mRtspTimeout, RTSP_TIMEOUT_SECONDS * 1000);
+            // Timeout extended
+            boolean to = Integer.parseInt( SystemProperties.get("persist.sys.wfd.longtimeout", "0") ) == 1;
+            int ext = to ? 2 : 1;
+            Slog.i(TAG, "updateConnection() RTSP Timeout["+RTSP_TIMEOUT_SECONDS * ext+"] seconds");
+            mHandler.postDelayed(mRtspTimeout, RTSP_TIMEOUT_SECONDS * 1000 * ext);
+            //mHandler.postDelayed(mRtspTimeout, RTSP_TIMEOUT_SECONDS * 1000);
         }
     }
 
