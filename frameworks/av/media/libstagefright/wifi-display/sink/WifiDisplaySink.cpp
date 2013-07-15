@@ -474,10 +474,14 @@ void WifiDisplaySink::onGetParameterRequest(
         int32_t sessionID,
         int32_t cseq,
         const sp<ParsedMessage> &data) {
+    //AString body =
+    //    "wfd_video_formats: xxx\r\n"
+    //    "wfd_audio_codecs: xxx\r\n"
+    //    "wfd_client_rtp_ports: RTP/AVP/UDP;unicast xxx 0 mode=play\r\n";
     AString body =
-        "wfd_video_formats: xxx\r\n"
-        "wfd_audio_codecs: xxx\r\n"
-        "wfd_client_rtp_ports: RTP/AVP/UDP;unicast xxx 0 mode=play\r\n";
+        "wfd_video_formats: xxx\r\n" // TODO FIXMI ^^;;
+        "wfd_audio_codecs: LPCM 00000003 00, AAC 0000000F 00\r\n"
+        "wfd_client_rtp_ports: RTP/AVP/UDP;unicast 19000 0 mode=play\r\n";
 
     AString response = "RTSP/1.0 200 OK\r\n";
     AppendCommonResponse(&response, cseq);
