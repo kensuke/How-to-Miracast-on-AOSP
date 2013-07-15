@@ -534,11 +534,25 @@ status_t WifiDisplaySource::sendM1(int32_t sessionID) {
 }
 
 status_t WifiDisplaySource::sendM3(int32_t sessionID) {
-    AString body =
-        "wfd_content_protection\r\n"
-        "wfd_video_formats\r\n"
-        "wfd_audio_codecs\r\n"
-        "wfd_client_rtp_ports\r\n";
+    // HDCP Authentication Skip!
+    char val[PROPERTY_VALUE_MAX];
+    bool skip_hdcp = property_get("persist.sys.wfd.nohdcp", val, NULL) && strcmp("1", val) == 0;
+    AString body;
+    if (skip_hdcp) {
+        ALOGI("sendM3() SKIP!! HDCP Authentication");
+        body = 
+            //"wfd_content_protection\r\n"
+            "wfd_video_formats\r\n"
+            "wfd_audio_codecs\r\n"
+            "wfd_client_rtp_ports\r\n";
+    } else {
+        ALOGI("sendM3() send standard request.");
+        body = 
+            "wfd_content_protection\r\n"
+            "wfd_video_formats\r\n"
+            "wfd_audio_codecs\r\n"
+            "wfd_client_rtp_ports\r\n";
+    }
 
     AString request = "GET_PARAMETER rtsp://localhost/wfd1.0 RTSP/1.0\r\n";
     AppendCommonResponse(&request, mNextCSeq);
