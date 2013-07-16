@@ -3,6 +3,7 @@ See https://github.com/kensuke/How-to-Miracast-on-AOSP/wiki
 Everything you want..
 
 
+Modified Files List
 ```
 ├── build
 │   └── target
@@ -19,7 +20,7 @@ Everything you want..
 │   └── samsung
 │       ├── maguro // Galaxy Nexus
 │       │    └── overlay/framewsorks/base/core/res/res/values/config.xml
-│       └── tuna
+│       └── tuna // Samsung Common
 │           ├── audio
 │           │   └── audio_policy.conf
 │           ├── device.mk
@@ -31,11 +32,12 @@ Everything you want..
 │   ├── av
 │   │   └── media
 │   │       └── libstagefright
-│   │           ├── ACodec.cpp
+│   │           ├── ACodec.cpp // Source
 │   │           └── wifi-display
-│   │               ├── ANetworkSession.cpp
+│   │               ├── ANetworkSession.cpp // Debug Log
 │   │               ├── sink
-│   │               │   └── TunnelRenderer.cpp
+│   │               │   ├── TunnelRenderer.cpp
+│   │               │   └── WifiDisplaySink.cpp
 │   │               └── source
 │   │                   └── WifiDisplaySource.cpp
 │   ├── base
@@ -45,11 +47,11 @@ Everything you want..
 │   │               └── android
 │   │                   └── server
 │   │                       └── display
-│   │                           └── WifiDisplayController.java
+│   │                           └── WifiDisplayController.java // Sink
 │   └── native
 │       └── libs
 │           └── gui
-│               └── SurfaceTexture.cpp
+│               └── SurfaceTexture.cpp // Sink: Screen Rotation
 └── packages
     └── apps
         ├─ Mira4U // JNI Sink, other util app
