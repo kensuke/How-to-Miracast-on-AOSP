@@ -169,6 +169,13 @@ void WifiDisplaySink::onMessageReceived(const sp<AMessage> &msg) {
                           detail.c_str(),
                           strerror(-err));
 
+                    ALOGE("An error occurred in session %d-%d (%d, '%s/%s').",
+                          sessionID,
+                          mSessionID,
+                          err,
+                          detail.c_str(),
+                          strerror(-err));
+
                     if (sessionID == mSessionID) {
                         ALOGI("Lost control connection.");
 
@@ -479,9 +486,12 @@ void WifiDisplaySink::onGetParameterRequest(
     //    "wfd_audio_codecs: xxx\r\n"
     //    "wfd_client_rtp_ports: RTP/AVP/UDP;unicast xxx 0 mode=play\r\n";
     AString body =
-        "wfd_video_formats: xxx\r\n" // TODO FIXMI ^^;;
+        "wfd_video_formats: 40 00 02 02 0001DEFF 157C7FFF 00000FFF 00 0000 0000 11 none none, 01 02 0001DEFF 157C7FFF 00000FFF 00 0000 0000 11 none none\r\n" // TODO FIXMI ^^;;
         "wfd_audio_codecs: LPCM 00000003 00, AAC 0000000F 00\r\n"
         "wfd_client_rtp_ports: RTP/AVP/UDP;unicast 19000 0 mode=play\r\n";
+// "wfd_video_formats: 38 01 01 08 0001deff 07ffffff 00000fff 02 0000 0000 11 0780 0438" // Q-WH-D1
+// "wfd_video_formats: 40 00 02 02 0001DEFF 157C7FFF 00000FFF 00 0000 0000 11 none none, 01 02 0001DEFF 157C7FFF 00000FFF 00 0000 0000 11 none none" // PTV3000
+// "wfd_video_formats: 79 00 02 02 0001DEFF 157C7FFF 00000FFF 00 0000 0000 11 none none, 01 02 0001DEFF 157C7FFF 00000FFF 00 0000 0000 11 none none" // NEC wsbox
 
     AString response = "RTSP/1.0 200 OK\r\n";
     AppendCommonResponse(&response, cseq);
