@@ -115,6 +115,8 @@ public class P2pSinkActivity extends Activity {
         }
     }
 
+    private boolean mIsAppBoot;
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -122,6 +124,8 @@ public class P2pSinkActivity extends Activity {
 
         // ブロードキャストレシーバで、WIFI_P2P_STATE_CHANGED_ACTIONのコールバックを持ってWi-Fi Direct ON/OFFを判定する
         mIsWiFiDirectEnabled = false;
+
+        mIsAppBoot = true;
 
         // たぶんこのタイミングでブロードキャストレシーバを登録するのがbetter
         registerBroadcastReceiver();
@@ -654,7 +658,11 @@ public class P2pSinkActivity extends Activity {
 
                 // invoke Sink
                 if (networkInfo.isConnected()) {
+                    mIsAppBoot = false;
                     invokeSink();
+                } else if (!mIsAppBoot) {
+                    //finish();
+                    System.exit(0); // force finish Sink Screen. TODO FIXME^^;;
                 }
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
                 WifiP2pDevice device = (WifiP2pDevice) intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
