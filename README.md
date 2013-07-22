@@ -3,6 +3,7 @@ See https://github.com/kensuke/How-to-Miracast-on-AOSP/wiki
 Everything you want..
 
 
+
 Modified Files List
 ```
 ├── build
@@ -55,5 +56,6 @@ Modified Files List
 └── packages
     └── apps
         ├─ Mira4U // JNI Sink, other util app
+        ├─ Settings/src/com/android/settings/wfd/WifiDisplaySettings.java // On/Off Switch
         └─ WFD    // wfd cmd test app
 ```

@@ -95,7 +95,7 @@ public final class WifiDisplaySettings extends SettingsPreferenceFragment {
         mActionBarSwitch = new Switch(activity);
         if (activity instanceof PreferenceActivity) {
             PreferenceActivity preferenceActivity = (PreferenceActivity) activity;
-            if (preferenceActivity.onIsHidingHeaders() || !preferenceActivity.onIsMultiPane()) {
+//            if (preferenceActivity.onIsHidingHeaders() || !preferenceActivity.onIsMultiPane()) {
                 final int padding = activity.getResources().getDimensionPixelSize(
                         R.dimen.action_bar_switch_padding);
                 mActionBarSwitch.setPadding(0, 0, padding, 0);
@@ -106,7 +106,7 @@ public final class WifiDisplaySettings extends SettingsPreferenceFragment {
                                 ActionBar.LayoutParams.WRAP_CONTENT,
                                 ActionBar.LayoutParams.WRAP_CONTENT,
                                 Gravity.CENTER_VERTICAL | Gravity.END));
-            }
+//            }
         }
 
         mActionBarSwitch.setOnCheckedChangeListener(mSwitchOnCheckedChangedListener);
@@ -149,6 +149,15 @@ public final class WifiDisplaySettings extends SettingsPreferenceFragment {
     }
 
     @Override
+    public void onDestroyView() {
+        Activity activity = getActivity();
+        if (activity instanceof PreferenceActivity) {
+            activity.getActionBar().setCustomView(null);
+        }
+        super.onDestroyView();
+    }
+
+    @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         MenuItem item = menu.add(Menu.NONE, MENU_ID_SCAN, 0,
                 mWifiDisplayStatus.getScanState() == WifiDisplayStatus.SCAN_STATE_SCANNING ?
@@ -157,6 +166,15 @@ public final class WifiDisplaySettings extends SettingsPreferenceFragment {
         item.setEnabled(mWifiDisplayStatus.getFeatureState() == WifiDisplayStatus.FEATURE_STATE_ON
                 && mWifiDisplayStatus.getScanState() == WifiDisplayStatus.SCAN_STATE_NOT_SCANNING);
         item.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+
+        //String prod = android.os.Build.PRODUCT.toUpperCase();
+        //boolean manta = prod.indexOf("MANTA") != -1; // only Nexus 10
+        //if (manta) {
+        //    item = menu.add(Menu.NONE, MENU_ID_SCAN+1, 0, "On/Off ");
+        //    item.setEnabled(true);
+        //    item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        //}
+
         super.onCreateOptionsMenu(menu, inflater);
     }
 
@@ -168,6 +186,9 @@ public final class WifiDisplaySettings extends SettingsPreferenceFragment {
                     mDisplayManager.scanWifiDisplays();
                 }
                 return true;
+            //case MENU_ID_SCAN+1:
+            //    mSwitchOnCheckedChangedListener.onCheckedChanged(null, !mWifiDisplayOnSetting);
+            //    return true;
         }
         return super.onOptionsItemSelected(item);
     }
