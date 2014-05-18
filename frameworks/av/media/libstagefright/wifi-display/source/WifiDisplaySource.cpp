@@ -21,18 +21,20 @@
 #include "WifiDisplaySource.h"
 #include "PlaybackSession.h"
 #include "Parameters.h"
-#include "ParsedMessage.h"
-#include "Sender.h"
+#include "rtp/RTPSender.h"
+#include "TimeSyncer.h"
 
 #include <binder/IServiceManager.h>
-#include <gui/ISurfaceTexture.h>
+#include <gui/IGraphicBufferProducer.h>
 #include <media/IHDCP.h>
 #include <media/IMediaPlayerService.h>
 #include <media/IRemoteDisplayClient.h>
 #include <media/stagefright/foundation/ABuffer.h>
 #include <media/stagefright/foundation/ADebug.h>
 #include <media/stagefright/foundation/AMessage.h>
+#include <media/stagefright/foundation/ParsedMessage.h>
 #include <media/stagefright/MediaErrors.h>
+#include <media/stagefright/Utils.h>
 
 #include <arpa/inet.h>
 #include <cutils/properties.h>
@@ -41,9 +43,13 @@
 
 namespace android {
 
+// static
+const AString WifiDisplaySource::sUserAgent = MakeUserAgent();
+
 WifiDisplaySource::WifiDisplaySource(
         const sp<ANetworkSession> &netSession,
-        const sp<IRemoteDisplayClient> &client)
+        const sp<IRemoteDisplayClient> &client,
+        const char *path)
     : mState(INITIALIZED),
       mNetSession(netSession),
       mClient(client),
@@ -58,8 +64,82 @@ WifiDisplaySource::WifiDisplaySource(
       mIsHDCP2_0(false),
       mHDCPPort(0),
       mHDCPInitializationComplete(false),
-      mSetupTriggerDeferred(false)
-{
+      mSetupTriggerDeferred(false),
+      mPlaybackSessionEstablished(false) {
+    if (path != NULL) {
+        mMediaPath.setTo(path);
+    }
+
+    mSupportedSourceVideoFormats.disableAll();
+
+    // Source settings
+    int32_t width = -1;
+    int32_t height = -1;
+
+    // self parse
+    FILE* fp = fopen("/data/data/com.example.mira4u/shared_prefs/prefs.xml", "r");
+    if (fp == NULL) {
+        ALOGE("WifiDisplaySource() fopen error[%d] (%4d, %4d)", errno, width, height);
+    } else {
+        char line[80];
+        while( fgets(line , sizeof(line) , fp) != NULL ) {
+            char lin[80];
+            memset(lin, 0, 80);
+            ALOGD("[%s]", strncpy(lin, line, strlen(line)-1)); // delete CR
+            int32_t val1 = -1, val2 = -1;
+            int32_t ret = sscanf(line, "    <string name=\"persist.sys.wfd.resolution\">%dx%d</string>", &val1, &val2);
+            if (ret == 2 && val1 > 0 && val2 > 0) {
+                width = val1;
+                height = val2;
+                break;
+            }
+        }
+        fclose(fp);
+    }
+
+    if (width == 800 && height == 480) { // Galaxy S2
+        ALOGD("WifiDisplaySource() (%4d, %4d) RESOLUTION_HH, 0", width, height);
+        mSupportedSourceVideoFormats.setNativeResolution(
+                VideoFormats::RESOLUTION_HH, 0);  // 800x480 p30
+
+        // Enable all resolutions up to 1280x720p30
+        mSupportedSourceVideoFormats.enableResolutionUpto(
+                VideoFormats::RESOLUTION_HH, 0,
+                VideoFormats::PROFILE_CHP,  // Constrained High Profile
+                VideoFormats::LEVEL_32);    // Level 3.2
+    } else if (width == 1600 && height == 900) { // ?
+        ALOGD("WifiDisplaySource() (%4d, %4d) RESOLUTION_VESA, 22", width, height);
+        mSupportedSourceVideoFormats.setNativeResolution(
+                VideoFormats::RESOLUTION_VESA, 21);  // 1600x900 p60
+
+        // Enable all resolutions up to 19200x1080 p60
+        mSupportedSourceVideoFormats.enableResolutionUpto(
+                VideoFormats::RESOLUTION_VESA, 21,
+                VideoFormats::PROFILE_CHP,  // Constrained High Profile
+                VideoFormats::LEVEL_32);    // Level 3.2
+    } else if (width == 1920 && height == 1080) { // Full HD
+        ALOGD("WifiDisplaySource() (%4d, %4d) RESOLUTION_CEA, 8", width, height);
+        mSupportedSourceVideoFormats.setNativeResolution(
+                VideoFormats::RESOLUTION_CEA, 8);  // 1920x1080 p60
+
+        // Enable all resolutions up to 19200x1080 p60
+        mSupportedSourceVideoFormats.enableResolutionUpto(
+                VideoFormats::RESOLUTION_CEA, 8,
+                VideoFormats::PROFILE_CHP,  // Constrained High Profile
+                VideoFormats::LEVEL_32);    // Level 3.2
+    } else {
+        // (width == -1 || height == -1)    // don't care
+        // (width == 1280 && height == 720) // AOSP default setting
+        ALOGD("WifiDisplaySource() (%4d, %4d) RESOLUTION_CEA, 5", width, height);
+        mSupportedSourceVideoFormats.setNativeResolution(
+                VideoFormats::RESOLUTION_CEA, 5);  // 1280x720 p30
+
+        // Enable all resolutions up to 1280x720p30
+        mSupportedSourceVideoFormats.enableResolutionUpto(
+                VideoFormats::RESOLUTION_CEA, 5,
+                VideoFormats::PROFILE_CHP,  // Constrained High Profile
+                VideoFormats::LEVEL_32);    // Level 3.2
+    }
 }
 
 WifiDisplaySource::~WifiDisplaySource() {
@@ -153,9 +233,40 @@ void WifiDisplaySource::onMessageReceived(const sp<AMessage> &msg) {
                 }
             }
 
-            if (err == OK) {
-                mState = AWAITING_CLIENT_CONNECTION;
+            bool skip_timesyncer = true;
+
+            // self parse
+            FILE* fp = fopen("/data/data/com.example.mira4u/shared_prefs/prefs.xml", "r");
+            if (fp == NULL) {
+                ALOGE("onMessageReceived() fopen error[%d]", errno);
+            } else {
+                char line[80];
+                while( fgets(line , sizeof(line) , fp) != NULL ) {
+                    char lin[80];
+                    memset(lin, 0, 80);
+                    ALOGD("[%s]", strncpy(lin, line, strlen(line)-1)); // delete CR
+                    int val = -1;
+                    int ret = sscanf(line, "    <string name=\"persist.sys.wfd.timesyncer\">%d</string>", &val);
+                    if (ret == 1 && val == 1) {
+                        skip_timesyncer = false;
+                        break;
+                    }
+                }
+                fclose(fp);
             }
+            ALOGD("onMessageReceived() skip_timesyncer[%d]", skip_timesyncer);
+
+//            if (err == OK) {
+            if (err == OK && !skip_timesyncer) {
+                sp<AMessage> notify = new AMessage(kWhatTimeSyncerNotify, id());
+                mTimeSyncer = new TimeSyncer(mNetSession, notify);
+                looper()->registerHandler(mTimeSyncer);
+
+                mTimeSyncer->startServer(8123);
+
+//                mState = AWAITING_CLIENT_CONNECTION;
+            }
+            mState = AWAITING_CLIENT_CONNECTION;
 
             sp<AMessage> response = new AMessage;
             response->setInt32("err", err);
@@ -253,12 +364,18 @@ void WifiDisplaySource::onMessageReceived(const sp<AMessage> &msg) {
                         if (!strcasecmp(val, "pause") && mState == PLAYING) {
                             mState = PLAYING_TO_PAUSED;
                             sendTrigger(mClientSessionID, TRIGGER_PAUSE);
-                        } else if (!strcasecmp(val, "play") && mState == PAUSED) {
+                        } else if (!strcasecmp(val, "play")
+                                    && mState == PAUSED) {
                             mState = PAUSED_TO_PLAYING;
                             sendTrigger(mClientSessionID, TRIGGER_PLAY);
                         }
                     }
 #endif
+                    break;
+                }
+
+                case ANetworkSession::kWhatNetworkStall:
+                {
                     break;
                 }
 
@@ -374,15 +491,42 @@ void WifiDisplaySource::onMessageReceived(const sp<AMessage> &msg) {
                 mClient->onDisplayError(
                         IRemoteDisplayClient::kDisplayErrorUnknown);
             } else if (what == PlaybackSession::kWhatSessionEstablished) {
+                mPlaybackSessionEstablished = true;
+
                 if (mClient != NULL) {
-                    mClient->onDisplayConnected(
-                            mClientInfo.mPlaybackSession->getSurfaceTexture(),
-                            mClientInfo.mPlaybackSession->width(),
-                            mClientInfo.mPlaybackSession->height(),
-                            mUsingHDCP
-                                ? IRemoteDisplayClient::kDisplayFlagSecure
-                                : 0);
+                    if (!mSinkSupportsVideo) {
+                        mClient->onDisplayConnected(
+                                NULL,  // SurfaceTexture
+                                0, // width,
+                                0, // height,
+                                mUsingHDCP
+                                    ? IRemoteDisplayClient::kDisplayFlagSecure
+                                    : 0,
+                                0);
+                    } else {
+                        size_t width, height;
+
+                        CHECK(VideoFormats::GetConfiguration(
+                                    mChosenVideoResolutionType,
+                                    mChosenVideoResolutionIndex,
+                                    &width,
+                                    &height,
+                                    NULL /* framesPerSecond */,
+                                    NULL /* interlaced */));
+
+                        mClient->onDisplayConnected(
+                                mClientInfo.mPlaybackSession
+                                    ->getSurfaceTexture(),
+                                width,
+                                height,
+                                mUsingHDCP
+                                    ? IRemoteDisplayClient::kDisplayFlagSecure
+                                    : 0,
+                                playbackSessionID);
+                    }
                 }
+
+                finishPlay();
 
                 if (mState == ABOUT_TO_PLAY) {
                     mState = PLAYING;
@@ -497,6 +641,11 @@ void WifiDisplaySource::onMessageReceived(const sp<AMessage> &msg) {
             break;
         }
 
+        case kWhatTimeSyncerNotify:
+        {
+            break;
+        }
+
         default:
             TRESPASS();
     }
@@ -534,9 +683,28 @@ status_t WifiDisplaySource::sendM1(int32_t sessionID) {
 }
 
 status_t WifiDisplaySource::sendM3(int32_t sessionID) {
-    // HDCP Authentication Skip!
-    char val[PROPERTY_VALUE_MAX];
-    bool skip_hdcp = property_get("persist.sys.wfd.nohdcp", val, NULL) && strcmp("1", val) == 0;
+    bool skip_hdcp = false;
+
+    // self parse
+    FILE* fp = fopen("/data/data/com.example.mira4u/shared_prefs/prefs.xml", "r");
+    if (fp == NULL) {
+        ALOGE("sendM3() fopen error[%d]", errno);
+    } else {
+        char line[80];
+        while( fgets(line , sizeof(line) , fp) != NULL ) {
+            char lin[80];
+            memset(lin, 0, 80);
+            ALOGD("[%s]", strncpy(lin, line, strlen(line)-1)); // delete CR
+            int val = -1;
+            int ret = sscanf(line, "    <string name=\"persist.sys.wfd.nohdcp\">%d</string>", &val);
+            if (ret == 1 && val == 1) {
+                skip_hdcp = true;
+                break;
+            }
+        }
+        fclose(fp);
+    }
+
     AString body;
     if (skip_hdcp) {
         ALOGI("sendM3() SKIP!! HDCP Authentication");
@@ -553,6 +721,12 @@ status_t WifiDisplaySource::sendM3(int32_t sessionID) {
             "wfd_audio_codecs\r\n"
             "wfd_client_rtp_ports\r\n";
     }
+
+    //AString body =
+    //    "wfd_content_protection\r\n"
+    //    "wfd_video_formats\r\n"
+    //    "wfd_audio_codecs\r\n"
+    //    "wfd_client_rtp_ports\r\n";
 
     AString request = "GET_PARAMETER rtsp://localhost/wfd1.0 RTSP/1.0\r\n";
     AppendCommonResponse(&request, mNextCSeq);
@@ -578,55 +752,41 @@ status_t WifiDisplaySource::sendM3(int32_t sessionID) {
 }
 
 status_t WifiDisplaySource::sendM4(int32_t sessionID) {
-    // wfd_video_formats:
-    // 1 byte "native"
-    // 1 byte "preferred-display-mode-supported" 0 or 1
-    // one or more avc codec structures
-    //   1 byte profile
-    //   1 byte level
-    //   4 byte CEA mask
-    //   4 byte VESA mask
-    //   4 byte HH mask
-    //   1 byte latency
-    //   2 byte min-slice-slice
-    //   2 byte slice-enc-params
-    //   1 byte framerate-control-support
-    //   max-hres (none or 2 byte)
-    //   max-vres (none or 2 byte)
-
     CHECK_EQ(sessionID, mClientSessionID);
 
-    AString transportString = "UDP";
+    AString body;
 
-    char val[PROPERTY_VALUE_MAX];
-    if (property_get("media.wfd.enable-tcp", val, NULL)
-            && (!strcasecmp("true", val) || !strcmp("1", val))) {
-        ALOGI("Using TCP transport.");
-        transportString = "TCP";
+    if (mSinkSupportsVideo) {
+        body.append("wfd_video_formats: ");
+
+        VideoFormats chosenVideoFormat;
+        chosenVideoFormat.disableAll();
+        chosenVideoFormat.setNativeResolution(
+                mChosenVideoResolutionType, mChosenVideoResolutionIndex);
+        chosenVideoFormat.setProfileLevel(
+                mChosenVideoResolutionType, mChosenVideoResolutionIndex,
+                mChosenVideoProfile, mChosenVideoLevel);
+
+        body.append(chosenVideoFormat.getFormatSpec(true /* forM4Message */));
+        body.append("\r\n");
     }
 
-    // For 720p60:
-    //   use "30 00 02 02 00000040 00000000 00000000 00 0000 0000 00 none none\r\n"
-    // For 720p30:
-    //   use "28 00 02 02 00000020 00000000 00000000 00 0000 0000 00 none none\r\n"
-    // For 720p24:
-    //   use "78 00 02 02 00008000 00000000 00000000 00 0000 0000 00 none none\r\n"
-    // For 1080p30:
-    //   use "38 00 02 02 00000080 00000000 00000000 00 0000 0000 00 none none\r\n"
-    AString body = StringPrintf(
-        "wfd_video_formats: "
-#if USE_1080P
-        "38 00 02 02 00000080 00000000 00000000 00 0000 0000 00 none none\r\n"
-#else
-        "28 00 02 02 00000020 00000000 00000000 00 0000 0000 00 none none\r\n"
-#endif
-        "wfd_audio_codecs: %s\r\n"
-        "wfd_presentation_URL: rtsp://%s/wfd1.0/streamid=0 none\r\n"
-        "wfd_client_rtp_ports: RTP/AVP/%s;unicast %d 0 mode=play\r\n",
-        (mUsingPCMAudio
-            ? "LPCM 00000002 00" // 2 ch PCM 48kHz
-            : "AAC 00000001 00"),  // 2 ch AAC 48kHz
-        mClientInfo.mLocalIP.c_str(), transportString.c_str(), mChosenRTPPort);
+    if (mSinkSupportsAudio) {
+        body.append(
+                StringPrintf("wfd_audio_codecs: %s\r\n",
+                             (mUsingPCMAudio
+                                ? "LPCM 00000002 00" // 2 ch PCM 48kHz
+                                : "AAC 00000001 00")));  // 2 ch AAC 48kHz
+    }
+
+    body.append(
+            StringPrintf(
+                "wfd_presentation_URL: rtsp://%s/wfd1.0/streamid=0 none\r\n",
+                mClientInfo.mLocalIP.c_str()));
+
+    body.append(
+            StringPrintf(
+                "wfd_client_rtp_ports: %s\r\n", mWfdClientRtpPorts.c_str()));
 
     AString request = "SET_PARAMETER rtsp://localhost/wfd1.0 RTSP/1.0\r\n";
     AppendCommonResponse(&request, mNextCSeq);
@@ -718,6 +878,8 @@ status_t WifiDisplaySource::sendM16(int32_t sessionID) {
 
     ++mNextCSeq;
 
+    scheduleKeepAlive(sessionID);
+
     return OK;
 }
 
@@ -789,62 +951,129 @@ status_t WifiDisplaySource::onReceiveM3Response(
         return ERROR_MALFORMED;
     }
 
-    unsigned port0, port1;
+    unsigned port0 = 0, port1 = 0;
     if (sscanf(value.c_str(),
                "RTP/AVP/UDP;unicast %u %u mode=play",
                &port0,
-               &port1) != 2
-        || port0 == 0 || port0 > 65535 || port1 != 0) {
-        ALOGE("Sink chose its wfd_client_rtp_ports poorly (%s)",
+               &port1) == 2
+        || sscanf(value.c_str(),
+               "RTP/AVP/TCP;unicast %u %u mode=play",
+               &port0,
+               &port1) == 2) {
+            if (port0 == 0 || port0 > 65535 || port1 != 0) {
+                ALOGE("Sink chose its wfd_client_rtp_ports poorly (%s)",
+                      value.c_str());
+
+                ALOGE("onReceiveM3Response() SKIP!! port check for AOSP Sink Port 'xxx' support.");
+                port0 = 19000;
+                port1 = 0;
+	        //return ERROR_MALFORMED;
+            }
+    } else if (strcmp(value.c_str(), "RTP/AVP/TCP;interleaved mode=play")) {
+        ALOGE("Unsupported value for wfd_client_rtp_ports (%s)",
               value.c_str());
 
-        ALOGE("onReceiveM3Response() SKIP!! port check.");
-        port0 = 19000;
-        port1 = 0;
-        //return ERROR_MALFORMED;
+        return ERROR_UNSUPPORTED;
     }
 
+    mWfdClientRtpPorts = value;
     mChosenRTPPort = port0;
+
+    if (!params->findParameter("wfd_video_formats", &value)) {
+        ALOGE("Sink doesn't report its choice of wfd_video_formats.");
+        return ERROR_MALFORMED;
+    }
+
+    mSinkSupportsVideo = false;
+
+    if  (!(value == "none")) {
+        mSinkSupportsVideo = true;
+        if (!mSupportedSinkVideoFormats.parseFormatSpec(value.c_str())) {
+            ALOGE("Failed to parse sink provided wfd_video_formats (%s)",
+                  value.c_str());
+
+            return ERROR_MALFORMED;
+        }
+
+        if (!VideoFormats::PickBestFormat(
+                    mSupportedSinkVideoFormats,
+                    mSupportedSourceVideoFormats,
+                    &mChosenVideoResolutionType,
+                    &mChosenVideoResolutionIndex,
+                    &mChosenVideoProfile,
+                    &mChosenVideoLevel)) {
+            ALOGE("Sink and source share no commonly supported video "
+                  "formats.");
+
+            return ERROR_UNSUPPORTED;
+        }
+
+        size_t width, height, framesPerSecond;
+        bool interlaced;
+        CHECK(VideoFormats::GetConfiguration(
+                    mChosenVideoResolutionType,
+                    mChosenVideoResolutionIndex,
+                    &width,
+                    &height,
+                    &framesPerSecond,
+                    &interlaced));
+
+        ALOGI("Picked video resolution %u x %u %c%u",
+              width, height, interlaced ? 'i' : 'p', framesPerSecond);
+
+        ALOGI("Picked AVC profile %d, level %d",
+              mChosenVideoProfile, mChosenVideoLevel);
+    } else {
+        ALOGI("Sink doesn't support video at all.");
+    }
 
     if (!params->findParameter("wfd_audio_codecs", &value)) {
         ALOGE("Sink doesn't report its choice of wfd_audio_codecs.");
         return ERROR_MALFORMED;
     }
 
-    if  (value == "none") {
-        ALOGE("Sink doesn't support audio at all.");
-        return ERROR_UNSUPPORTED;
-    }
+    mSinkSupportsAudio = false;
 
     if (value == "xxx") {
-        ALOGE("onReceiveM3Response() Force Apply wfd_audio_codecs to AAC");
+        ALOGE("onReceiveM3Response() Received wfd_audio_codecs = 'XXX'(AOSP Sink?). Force Apply wfd_audio_codecs to AAC");
         value.clear();
         value.append("LPCM 00000003 00, AAC 0000000F 00");
     }
 
-    uint32_t modes;
-    GetAudioModes(value.c_str(), "AAC", &modes);
+    if  (!(value == "none")) {
+        mSinkSupportsAudio = true;
 
-    bool supportsAAC = (modes & 1) != 0;  // AAC 2ch 48kHz
+        uint32_t modes;
+        GetAudioModes(value.c_str(), "AAC", &modes);
 
-    GetAudioModes(value.c_str(), "LPCM", &modes);
+        bool supportsAAC = (modes & 1) != 0;  // AAC 2ch 48kHz
 
-    bool supportsPCM = (modes & 2) != 0;  // LPCM 2ch 48kHz
+        GetAudioModes(value.c_str(), "LPCM", &modes);
 
-    char val[PROPERTY_VALUE_MAX];
-    if (supportsPCM
-            && property_get("media.wfd.use-pcm-audio", val, NULL)
-            && (!strcasecmp("true", val) || !strcmp("1", val))) {
-        ALOGI("Using PCM audio.");
-        mUsingPCMAudio = true;
-    } else if (supportsAAC) {
-        ALOGI("Using AAC audio.");
-        mUsingPCMAudio = false;
-    } else if (supportsPCM) {
-        ALOGI("Using PCM audio.");
-        mUsingPCMAudio = true;
+        bool supportsPCM = (modes & 2) != 0;  // LPCM 2ch 48kHz
+
+        char val[PROPERTY_VALUE_MAX];
+        if (supportsPCM
+                && property_get("media.wfd.use-pcm-audio", val, NULL)
+                && (!strcasecmp("true", val) || !strcmp("1", val))) {
+            ALOGI("Using PCM audio.");
+            mUsingPCMAudio = true;
+        } else if (supportsAAC) {
+            ALOGI("Using AAC audio.");
+            mUsingPCMAudio = false;
+        } else if (supportsPCM) {
+            ALOGI("Using PCM audio.");
+            mUsingPCMAudio = true;
+        } else {
+            ALOGI("Sink doesn't support an audio format we do.");
+            return ERROR_UNSUPPORTED;
+        }
     } else {
-        ALOGI("Sink doesn't support an audio format we do.");
+        ALOGI("Sink doesn't support audio at all.");
+    }
+
+    if (!mSinkSupportsVideo && !mSinkSupportsAudio) {
+        ALOGE("Sink supports neither video nor audio...");
         return ERROR_UNSUPPORTED;
     }
 
@@ -930,8 +1159,6 @@ status_t WifiDisplaySource::onReceiveM16Response(
 
     if (mClientInfo.mPlaybackSession != NULL) {
         mClientInfo.mPlaybackSession->updateLiveness();
-
-        scheduleKeepAlive(sessionID);
     }
 
     return OK;
@@ -1091,7 +1318,7 @@ status_t WifiDisplaySource::onSetupRequest(
         return ERROR_MALFORMED;
     }
 
-    Sender::TransportMode transportMode = Sender::TRANSPORT_UDP;
+    RTPSender::TransportMode rtpMode = RTPSender::TRANSPORT_UDP;
 
     int clientRtp, clientRtcp;
     if (transport.startsWith("RTP/AVP/TCP;")) {
@@ -1100,7 +1327,7 @@ status_t WifiDisplaySource::onSetupRequest(
                     transport.c_str(), "interleaved", &interleaved)
                 && sscanf(interleaved.c_str(), "%d-%d",
                           &clientRtp, &clientRtcp) == 2) {
-            transportMode = Sender::TRANSPORT_TCP_INTERLEAVED;
+            rtpMode = RTPSender::TRANSPORT_TCP_INTERLEAVED;
         } else {
             bool badRequest = false;
 
@@ -1122,7 +1349,7 @@ status_t WifiDisplaySource::onSetupRequest(
                 return ERROR_MALFORMED;
             }
 
-            transportMode = Sender::TRANSPORT_TCP;
+            rtpMode = RTPSender::TRANSPORT_TCP;
         }
     } else if (transport.startsWith("RTP/AVP;unicast;")
             || transport.startsWith("RTP/AVP/UDP;unicast;")) {
@@ -1164,7 +1391,7 @@ status_t WifiDisplaySource::onSetupRequest(
 
     sp<PlaybackSession> playbackSession =
         new PlaybackSession(
-                mNetSession, notify, mInterfaceAddr, mHDCP);
+                mNetSession, notify, mInterfaceAddr, mHDCP, mMediaPath.c_str());
 
     looper()->registerHandler(playbackSession);
 
@@ -1181,12 +1408,24 @@ status_t WifiDisplaySource::onSetupRequest(
         return ERROR_MALFORMED;
     }
 
+    RTPSender::TransportMode rtcpMode = RTPSender::TRANSPORT_UDP;
+    if (clientRtcp < 0) {
+        rtcpMode = RTPSender::TRANSPORT_NONE;
+    }
+
     status_t err = playbackSession->init(
             mClientInfo.mRemoteIP.c_str(),
             clientRtp,
+            rtpMode,
             clientRtcp,
-            transportMode,
-            mUsingPCMAudio);
+            rtcpMode,
+            mSinkSupportsAudio,
+            mUsingPCMAudio,
+            mSinkSupportsVideo,
+            mChosenVideoResolutionType,
+            mChosenVideoResolutionIndex,
+            mChosenVideoProfile,
+            mChosenVideoLevel);
 
     if (err != OK) {
         looper()->unregisterHandler(playbackSession->id());
@@ -1210,7 +1449,7 @@ status_t WifiDisplaySource::onSetupRequest(
     AString response = "RTSP/1.0 200 OK\r\n";
     AppendCommonResponse(&response, cseq, playbackSessionID);
 
-    if (transportMode == Sender::TRANSPORT_TCP_INTERLEAVED) {
+    if (rtpMode == RTPSender::TRANSPORT_TCP_INTERLEAVED) {
         response.append(
                 StringPrintf(
                     "Transport: RTP/AVP/TCP;interleaved=%d-%d;",
@@ -1219,7 +1458,7 @@ status_t WifiDisplaySource::onSetupRequest(
         int32_t serverRtp = playbackSession->getRTPPort();
 
         AString transportString = "UDP";
-        if (transportMode == Sender::TRANSPORT_TCP) {
+        if (rtpMode == RTPSender::TRANSPORT_TCP) {
             transportString = "TCP";
         }
 
@@ -1269,33 +1508,52 @@ status_t WifiDisplaySource::onPlayRequest(
         return ERROR_MALFORMED;
     }
 
-    ALOGI("Received PLAY request.");
+    if (mState != AWAITING_CLIENT_PLAY
+     && mState != PAUSED_TO_PLAYING
+     && mState != PAUSED) {
+        ALOGW("Received PLAY request but we're in state %d", mState);
 
-    status_t err = playbackSession->play();
-    CHECK_EQ(err, (status_t)OK);
+        sendErrorResponse(
+                sessionID, "455 Method Not Valid in This State", cseq);
+
+        return INVALID_OPERATION;
+    }
+
+    ALOGI("Received PLAY request.");
+    if (mPlaybackSessionEstablished) {
+        finishPlay();
+    } else {
+        ALOGI("deferring PLAY request until session established.");
+    }
 
     AString response = "RTSP/1.0 200 OK\r\n";
     AppendCommonResponse(&response, cseq, playbackSessionID);
     response.append("Range: npt=now-\r\n");
     response.append("\r\n");
 
-    err = mNetSession->sendRequest(sessionID, response.c_str());
+    status_t err = mNetSession->sendRequest(sessionID, response.c_str());
 
     if (err != OK) {
         return err;
     }
 
-    if (mState == PAUSED_TO_PLAYING) {
+    if (mState == PAUSED_TO_PLAYING || mPlaybackSessionEstablished) {
         mState = PLAYING;
         return OK;
     }
-
-    playbackSession->finishPlay();
 
     CHECK_EQ(mState, AWAITING_CLIENT_PLAY);
     mState = ABOUT_TO_PLAY;
 
     return OK;
+}
+
+void WifiDisplaySource::finishPlay() {
+    const sp<PlaybackSession> &playbackSession =
+        mClientInfo.mPlaybackSession;
+
+    status_t err = playbackSession->play();
+    CHECK_EQ(err, (status_t)OK);
 }
 
 status_t WifiDisplaySource::onPauseRequest(
@@ -1313,7 +1571,7 @@ status_t WifiDisplaySource::onPauseRequest(
 
     ALOGI("Received PAUSE request.");
 
-    if (mState != PLAYING_TO_PAUSED) {
+    if (mState != PLAYING_TO_PAUSED && mState != PLAYING) {
         return INVALID_OPERATION;
     }
 
@@ -1473,7 +1731,7 @@ void WifiDisplaySource::AppendCommonResponse(
     response->append(buf);
     response->append("\r\n");
 
-    response->append("Server: Mine/1.0\r\n");
+    response->append(StringPrintf("Server: %s\r\n", sUserAgent.c_str()));
 
     if (cseq >= 0) {
         response->append(StringPrintf("CSeq: %d\r\n", cseq));
@@ -1583,10 +1841,13 @@ void WifiDisplaySource::HDCPObserver::notify(
 status_t WifiDisplaySource::makeHDCP() {
     sp<IServiceManager> sm = defaultServiceManager();
     sp<IBinder> binder = sm->getService(String16("media.player"));
-    sp<IMediaPlayerService> service = interface_cast<IMediaPlayerService>(binder);
+
+    sp<IMediaPlayerService> service =
+        interface_cast<IMediaPlayerService>(binder);
+
     CHECK(service != NULL);
 
-    mHDCP = service->makeHDCP();
+    mHDCP = service->makeHDCP(true /* createEncryptionModule */);
 
     if (mHDCP == NULL) {
         return ERROR_UNSUPPORTED;
