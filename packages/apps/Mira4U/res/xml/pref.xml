@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
+  <PreferenceCategory
+    android:key="category2"
+    android:title="@string/cat_source">
+
     <CheckBoxPreference
-        android:key="persist.sys.wfd.disablelog"
+        android:key="persist.sys.wfd.log"
         android:title="@string/checkbox_log"
         android:summary="@string/checkbox_log_summary" />
 
@@ -11,9 +15,97 @@
         android:title="@string/checkbox_hdcp"
         android:summary="@string/checkbox_hdcp_summary" />
 
+    <ListPreference
+        android:key="persist.sys.wfd.resolution"
+        android:title="@string/resolution"
+        android:summary="@string/resolution_summary"
+        android:entries="@array/entries_resolution"
+        android:entryValues="@array/entryvalues_resolution"
+        android:dialogTitle="@string/resolution" />
+
+    <ListPreference
+        android:key="persist.sys.wfd.bitrate"
+        android:title="@string/bitrate"
+        android:summary="@string/bitrate_summary"
+        android:entries="@array/entries_bitrate"
+        android:entryValues="@array/entryvalues_bitrate"
+        android:dialogTitle="@string/bitrate" />
+
+    <ListPreference
+        android:key="persist.sys.wfd.framerate"
+        android:title="@string/framerate"
+        android:summary="@string/framerate_summary"
+        android:entries="@array/entries_framerate"
+        android:entryValues="@array/entryvalues_framerate"
+        android:dialogTitle="@string/framerate" />
+
     <CheckBoxPreference
         android:key="persist.sys.wfd.longtimeout"
         android:title="@string/checkbox_timeout"
         android:summary="@string/checkbox_timeout_summary" />
+
+    <CheckBoxPreference
+        android:key="persist.sys.wfd.timesyncer"
+        android:title="@string/checkbox_timesyncer"
+        android:summary="@string/checkbox_timesyncer_summary" />
+
+    <Preference
+        android:key="button_wfd"
+        android:title="@string/button_wfd_exec"
+        android:summary="@string/button_wfd_exec_summary" />
+
+  </PreferenceCategory>
+
+  <PreferenceCategory
+    android:key="category2"
+    android:title="@string/cat_sink">
+
+    <CheckBoxPreference
+        android:key="persist.sys.wfd.nosinkrotate"
+        android:title="@string/checkbox_sinkrotate"
+        android:summary="@string/checkbox_sinkrotate_summary" />
+
+    <CheckBoxPreference
+        android:key="persist.sys.wfd.fhdsink"
+        android:title="@string/checkbox_fhdsink"
+        android:summary="@string/checkbox_fhdsink_summary" />
+
+    <CheckBoxPreference
+        android:key="persist.sys.wfd.specialmode"
+        android:title="@string/checkbox_specialmode"
+        android:summary="@string/checkbox_specialmode_summary" />
+
+    <CheckBoxPreference
+        android:key="persist.sys.wfd.sinkisn10"
+        android:title="@string/checkbox_sinkisn10"
+        android:summary="@string/checkbox_sinkisn10_summary" />
+
+    <CheckBoxPreference
+        android:key="persist.sys.wfd.sinkloop"
+        android:title="@string/checkbox_sinkloop"
+        android:summary="@string/checkbox_sinkloop_summary" />
+
+    <Preference
+        android:key="button_sink"
+        android:title="@string/button_sink_exec"
+        android:summary="@string/button_sink_exec_summary" />
+
+  </PreferenceCategory>
+
+  <PreferenceCategory
+    android:key="category2"
+    android:title="@string/cat_dev">
+
+    <CheckBoxPreference
+        android:key="persist.sys.wfd.noapptoast"
+        android:title="@string/checkbox_apptoast"
+        android:summary="@string/checkbox_apptoast_summary" />
+
+    <Preference
+        android:key="button_wfddev"
+        android:title="@string/button_wfddev_exec"
+        android:summary="@string/button_wfddev_exec_summary" />
+
+  </PreferenceCategory>
 
 </PreferenceScreen>

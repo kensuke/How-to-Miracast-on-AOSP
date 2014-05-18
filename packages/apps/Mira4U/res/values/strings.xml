@@ -1,9 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Miracast for You</string>
-    <string name="p2p_name">P2p Sink</string>
-    <string name="set_name">Settings</string>
+    <string name="p2p_name">P2p Sink Daemon Activity</string>
+    <string name="wfd_name">Wfd Dev Activity</string>
 
+<!-- Settings -->
+    <string name="cat_source">Source Settings</string>
+    <string name="cat_sink">Sink Settings</string>
+    <string name="cat_dev">Developer Settings</string> 
+
+<!-- Source -->
+    <string name="checkbox_log">Enable Send Logcat Output</string>
+    <string name="checkbox_log_summary">for Developer Option. Confirmed RTSP Log.</string>
+
+    <string name="checkbox_hdcp">Skip HDCP Authentication</string>
+    <string name="checkbox_hdcp_summary">If HDCP Authentication Error Occurred, Try This Option</string>
+
+    <string name="dontcare">"(DON'T CARE)"</string>
+
+    <string name="resolution">Change Resolution</string>
+    <string name="resolution_summary">%1$s</string>
+    <string name="resolution_summary_1st">Available 800x480, 1280x720, 1920x1080</string>
+
+    <string name="bitrate">Change Bitrate</string>
+    <string name="bitrate_summary">%1$s</string>
+    <string name="bitrate_summary_1st">Available 1000000-20000000</string>
+
+    <string name="framerate">Change Framerate</string>
+    <string name="framerate_summary">%1$s Hz</string>
+    <string name="framerate_summary_1st">Available 10, 20, 30, 40, 50, 60 Hz</string>
+
+    <string name="checkbox_timeout">Extend Timeout Time</string>
+    <string name="checkbox_timeout_summary">RTSP Connection Timeout Time Extend(15 -> 30secs). This Option Required OTA-Package Privilege(need framework.jar).</string>
+
+    <string name="checkbox_timesyncer">Enable TimeSyncer</string>
+    <string name="checkbox_timesyncer_summary">for Robust Connect to AOSP 4.4 Sink</string>
+
+    <string name="button_wfd_exec">! Launch Wifi Display Settings Activity</string>
+    <string name="button_wfd_exec_summary">open Android Standard Settings App</string>
+
+<!-- Sink -->
+    <string name="checkbox_sinkrotate">Disable Sink Rotation</string>
+    <string name="checkbox_sinkrotate_summary">for MHL Dongle</string>
+
+    <string name="checkbox_fhdsink">Sink Supported Full HD </string>
+    <string name="checkbox_fhdsink_summary">for High Spec Device</string>
+
+    <string name="checkbox_specialmode">Special Mode(?)</string>
+    <string name="checkbox_specialmode_summary">In "special" mode we still use a UDP RTCP back-channel that needs connecting.</string>
+
+    <string name="checkbox_sinkisn10">Sink is Nexus 10</string>
+    <string name="checkbox_sinkisn10_summary">for High Resolution Device</string>
+
+    <string name="checkbox_sinkloop">become Sink Adapter</string>
+    <string name="checkbox_sinkloop_summary">infinite sink execution loop...</string>
+
+    <string name="button_sink_exec">! Launch P2p Sink Daemon Activity</string>
+    <string name="button_sink_exec_summary">open Receiver Activity</string>
+
+<!-- Dev -->
+    <string name="checkbox_apptoast">Disable App Toast</string>
+    <string name="checkbox_apptoast_summary"></string>
+
+    <string name="button_wfddev_exec">! Launch Wfd Dev Activity</string>
+    <string name="button_wfddev_exec_summary">for Backward Compatibility. NO Maintenance</string>
+
+<!-- wfd dev -->
     <string name="lbl_Source">Source</string>
     <string name="lbl_Sink">Sink</string>
     <string name="lbl_IP">(IP Address)</string>
@@ -12,18 +74,10 @@
     <string name="lbl_fwwifisource">F/W Wi-Fi Source listen on _ </string>
     <string name="lbl_fwwfdsource">F/W Wi-Fi wfd Source listen on _ </string>
     <string name="lbl_fwwifisink">F/W Wi-Fi Sink connect to _ </string>
-    <string name="lbl_fwp2psink">F/W p2p Sink Activity</string>
+    <string name="lbl_fwp2psink">P2p Sink</string>
 
     <string name="lbl_killwfd">kill wfd</string>
 
     <string name="err_no_ip">No Valid Networks. Try Connect a Network.</string>
 
-<!-- Settings -->
-    <string name="checkbox_log">Diabled Log Output</string>
-    <string name="checkbox_hdcp">Skip HDCP Authentication</string>
-    <string name="checkbox_timeout">Extend Timeout Time</string>
-
-    <string name="checkbox_log_summary">for Better Performance</string>
-    <string name="checkbox_hdcp_summary">If HDCP Authentication Error Occurred, Try This Option</string>
-    <string name="checkbox_timeout_summary">RTSP Timeout Time Extend(15 -> 30secs)</string>
 </resources>

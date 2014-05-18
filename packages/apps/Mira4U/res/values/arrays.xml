@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="entries_resolution">
+        <item>"(DON'T CARE) RECOMMEND"</item>
+        <item>800 x 480 - for Galaxy S2</item>
+        <item>1280 x 720 - AOSP Standard</item>
+        <item>1600 x 900 - Some Sinks used this Value?</item>
+        <item>1920 x 1080 - Full HD</item>
+    </string-array>
+    <string-array name="entryvalues_resolution">
+        <item>-1x-1</item>
+        <item>800x480</item>
+        <item>1280x720</item>
+        <item>1600x900</item>
+        <item>1920x1080</item>
+    </string-array>
+
+    <string-array name="entries_framerate">
+        <item>"(DON'T CARE)"</item>
+        <item>10 Hz - TEST!</item>
+        <item>20 Hz - TEST!!</item>
+        <item>30 Hz - AOSP Standard</item>
+        <item>40 Hz - TEST!!!!</item>
+        <item>50 Hz - TEST!!!!!</item>
+        <item>60 Hz - TEST!!!!!!</item>
+    </string-array>
+    <string-array name="entryvalues_framerate">
+        <item>-1</item>
+        <item>10</item>
+        <item>20</item>
+        <item>30</item>
+        <item>40</item>
+        <item>50</item>
+        <item>60</item>
+    </string-array>
+
+    <string-array name="entries_bitrate">
+        <item>"(DON'T CARE)"</item>
+        <item>1000000</item>
+        <item>2000000</item>
+        <item>3000000</item>
+        <item>4000000</item>
+        <item>5000000 - AOSP Standard</item>
+        <item>8000000</item>
+        <item>10000000</item>
+        <item>12000000 - Limit of maguro</item>
+        <item>16000000</item>
+        <item>20000000 - Limit of Nexus 7</item>
+    </string-array>
+    <string-array name="entryvalues_bitrate">
+        <item>-1</item>
+        <item>1000000</item>
+        <item>2000000</item>
+        <item>3000000</item>
+        <item>4000000</item>
+        <item>5000000</item>
+        <item>8000000</item>
+        <item>10000000</item>
+        <item>12000000</item>
+        <item>16000000</item>
+        <item>20000000</item>
+    </string-array>
+</resources>

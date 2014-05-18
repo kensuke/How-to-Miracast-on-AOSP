@@ -21,6 +21,7 @@ LOCAL_SHARED_LIBRARIES:= \
     libstagefright_foundation       \
     libstagefright_wfd              \
     libutils                        \
+    libcutils                       \
 
 LOCAL_CERTIFICATE := platform
 

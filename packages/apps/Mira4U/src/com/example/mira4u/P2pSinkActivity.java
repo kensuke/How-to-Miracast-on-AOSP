@@ -12,6 +12,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.NetworkInfo;
@@ -37,6 +38,7 @@ import android.text.Html;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
@@ -91,6 +93,14 @@ public class P2pSinkActivity extends Activity {
     /** for delayed execute */
     private Handler mHandler;
 
+    private boolean mConnected;
+
+    public static final int FINISH_CODE_BUTTON = 1;
+    public static final int FINISH_CODE_BACK = 2;
+    public static final int FINISH_CODE_SINK_LOOP = 3;
+    public static final int FINISH_CODE_SINK_ONETIME = 4;
+    public static final int LAUNCH_CODE_SINK = 5;
+
     /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
      * Activity API
      */
@@ -112,6 +122,7 @@ public class P2pSinkActivity extends Activity {
 
         if (!hasP2P()) {
             toastAndLog("onCreate()", "This Device Has Not P2P Feature!!");
+            return;
         }
     }
 
@@ -122,6 +133,8 @@ public class P2pSinkActivity extends Activity {
         super.onResume();
         addLog("onResume()");
 
+        mConnected = false;
+
         // ブロードキャストレシーバで、WIFI_P2P_STATE_CHANGED_ACTIONのコールバックを持ってWi-Fi Direct ON/OFFを判定する
         mIsWiFiDirectEnabled = false;
 
@@ -131,6 +144,10 @@ public class P2pSinkActivity extends Activity {
         registerBroadcastReceiver();
 
         mHandler = new Handler();
+
+        // insted of WakeLock
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        //getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     @Override
@@ -140,6 +157,8 @@ public class P2pSinkActivity extends Activity {
 
         // ブロードキャストレシーバ解除
         unRegisterBroadcastReceiver();
+
+        stopDiscoverPeersTimer();
     }
 
     /**
@@ -515,12 +534,12 @@ public class P2pSinkActivity extends Activity {
             public void onConnectionInfoAvailable(WifiP2pInfo info) {
                 addLog("　onConnectionInfoAvailable():");
                 if (info == null) {
-                    addLog("  info is NULL!");
+                    addLog("　　info is NULL!");
                     return;
                 }
-                addLog("  groupFormed:" + info.groupFormed);
-                addLog("  isGroupOwner:" + info.isGroupOwner);
-                addLog("  groupOwnerAddress:" + info.groupOwnerAddress);
+                addLog("　　groupFormed:" + info.groupFormed);
+                addLog("　　isGroupOwner:" + info.isGroupOwner);
+                addLog("　　groupOwnerAddress:" + info.groupOwnerAddress);
             }
         });
     }
@@ -537,7 +556,7 @@ public class P2pSinkActivity extends Activity {
             public void onGroupInfoAvailable(WifiP2pGroup group) {
                 addLog("　onGroupInfoAvailable():");
                 if (group == null) {
-                    addLog("  group is NULL!");
+                    addLog("　　group is NULL!");
                     return;
                 }
 
@@ -648,7 +667,7 @@ public class P2pSinkActivity extends Activity {
             } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
                 // このタイミングでrequestPeers()を呼び出すと、peerの変化(ステータス変更とか)がわかる
                 // 本テストアプリは、メソッド単位での実行をテストしたいので、ここではrequestPeers()を実行しない
-                addLog("try requestPeers()");
+                addLog("　try requestPeers()");
             } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
                 NetworkInfo networkInfo = (NetworkInfo) intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
                 // networkInfo.toString()はCSV文字列(1行)を返す。そのままでは読みにくいので、カンマを改行へ変換する。
@@ -656,24 +675,49 @@ public class P2pSinkActivity extends Activity {
                 if (HTML_OUT) nlog = "<font color=#f0e68c>"+nlog+"</font>"; // khaki
                 addLog(nlog);
 
+                if (!networkInfo.isConnected()) {
+                    mConnected = false;
+                }
+
                 // invoke Sink
                 if (networkInfo.isConnected()) {
+                    mConnected = true;
+                    stopDiscoverPeersTimer();
                     mIsAppBoot = false;
                     invokeSink();
-                } else if (!mIsAppBoot) {
-                    //finish();
-                    System.exit(0); // force finish Sink Screen. TODO FIXME^^;;
+                } else if (!mIsAppBoot) { 
+                    if (isSinkAdapter()) {
+                        //startDiscoverPeersTimer();
+                        //System.exit(0); // force finish Sink Screen. TODO FIXME^^;;
+                        //rebootSelf();
+                        finishSink(FINISH_CODE_SINK_LOOP);
+                    } else {
+                        //finish();
+                        //System.exit(0); // force finish Sink Screen. TODO FIXME^^;;
+                        finishSink(FINISH_CODE_SINK_ONETIME);
+                    }
                 }
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
                 WifiP2pDevice device = (WifiP2pDevice) intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
                 addLog(toStringDevice(device));
 
                 // Search
-                if (mIsWiFiDirectEnabled) {
-                    onClickDiscoverPeers(null);
+                if (mIsWiFiDirectEnabled && !isConnected(device)) {
+                    //onClickDiscoverPeers(null);
+                    startDiscoverPeersTimer();
                 }
             }
         }
+
+    // 接続状態検出
+    private boolean isConnected(WifiP2pDevice device) {
+       if (device == null) { 
+            return false;
+        }
+
+        return device.status == WifiP2pDevice.CONNECTED;
+    }
+
     }
 
     /**
@@ -765,7 +809,7 @@ public class P2pSinkActivity extends Activity {
             public void onGroupInfoAvailable(WifiP2pGroup group) {
                 addLog("　onGroupInfoAvailable():");
                 if (group == null) {
-                    addLog("  group is NULL!");
+                    addLog("　　group is NULL!");
                     return;
                 }
 
@@ -789,7 +833,7 @@ public class P2pSinkActivity extends Activity {
                 //AssertEqual(p2pdevs.size(), 1); // one device?
                 for (WifiP2pDevice dev : p2pdevs) {
                     boolean b = isWifiDisplaySource(dev);
-                    addLog("invokeSink() isWifiDisplaySource("+dev.deviceName+")=["+b+"]");
+                    addLog("invokeSink() isWifiDisplaySource("+dev.deviceName+")=["+b+"] port["+mP2pControlPort+"]");
                     if (!b) {
                         continue;
                         // return; // because not Miracast Source device
@@ -809,6 +853,7 @@ public class P2pSinkActivity extends Activity {
                     mArpTableObservationTimer = new Timer();
                     ArpTableObservationTask task = new ArpTableObservationTask();
                     mArpTableObservationTimer.scheduleAtFixedRate(task, 10, 1*1000); // 10ms後から1秒間隔でarpファイルをチェック
+                    addLog("invokeSink() watch /proc/net/arp thread start.");
                 } else { // this device is not G.O. get G.O. address
                     invokeSink2nd();
                 }
@@ -831,9 +876,7 @@ public class P2pSinkActivity extends Activity {
         int type = wfd.getDeviceType();
         mP2pControlPort = wfd.getControlPort();
 
-        boolean source = (type == WifiP2pWfdInfo.WFD_SOURCE) || (type == WifiP2pWfdInfo.SOURCE_OR_PRIMARY_SINK);
-        addLog("isWifiDisplaySource() type["+type+"] is-source["+source+"] port["+mP2pControlPort+"]");
-        return source;
+        return (type == WifiP2pWfdInfo.WFD_SOURCE) || (type == WifiP2pWfdInfo.SOURCE_OR_PRIMARY_SINK);
     }
 
     /**
@@ -848,21 +891,21 @@ public class P2pSinkActivity extends Activity {
             public void onConnectionInfoAvailable(WifiP2pInfo info) {
                 addLog("　onConnectionInfoAvailable():");
                 if (info == null) {
-                    addLog("  info is NULL!");
+                    addLog("　　info is NULL!");
                     return;
                 }
 
-                addLog("  groupFormed:" + info.groupFormed);
-                addLog("  isGroupOwner:" + info.isGroupOwner);
-                addLog("  groupOwnerAddress:" + info.groupOwnerAddress);
+                addLog("　　groupFormed:" + info.groupFormed);
+                addLog("　　isGroupOwner:" + info.isGroupOwner);
+                addLog("　　groupOwnerAddress:" + info.groupOwnerAddress);
 
                 if (!info.groupFormed) {
-                    addLog("  not yet groupFormed!");
+                    addLog("　not yet groupFormed!");
                     return;
                 }
 
                 if (info.isGroupOwner) {
-                    addLog("  I'm G.O.? Illegal State!!");
+                    addLog("　I'm G.O.? Illegal State!!");
                     return;
                 } else {
                     String source_ip = info.groupOwnerAddress.getHostAddress();
@@ -888,6 +931,13 @@ public class P2pSinkActivity extends Activity {
      * /proc/net/arp テーブル監視タスク
      */
     class ArpTableObservationTask extends TimerTask {
+        private Runnable runLog = new Runnable() {
+            @Override
+            public void run() {
+                addLog("　DHCP waiting: retry["+mArpRetryCount+"/"+MAX_ARP_RETRY_COUNT+"]");
+            }
+        };
+
         @Override
         public void run() {
             // arpテーブル読み込み
@@ -896,7 +946,7 @@ public class P2pSinkActivity extends Activity {
 
             // リトライ
             if (source_ip == null) {
-                Log.d(TAG, "retry:" + mArpRetryCount);
+                runOnUiThread(runLog);
                 if (++mArpRetryCount > MAX_ARP_RETRY_COUNT) {
                     mArpTableObservationTimer.cancel();
                     return;
@@ -913,9 +963,125 @@ public class P2pSinkActivity extends Activity {
         mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                MainActivity.invokeSink(ip, port);
+                invokeSink(ip, port);
             }
         }, delaySec*1000);
+    }
+
+    private void invokeSink(String ip, int port) {
+        addLog("invokeSink() Source Addr["+ip+":"+port+"]");
+        new AvoidANRThread(ip, port).start();
+        Toast.makeText(this, "invokeSink() called nativeInvokeSink("+ip+":"+port+")", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Avoid ANR
+     */
+    private class AvoidANRThread extends Thread {
+        private final String ip;
+        private final int port;
+
+        AvoidANRThread(String _ip, int _port) {
+            ip = _ip;
+            port = _port;
+        }
+
+        public void run() {
+	    nativeInvokeSink(ip, port, getSpecialMode(), getNexus10());
+        }
+    }
+
+    /**
+     * JNI:invoke Sink
+     */
+    private static native void nativeInvokeSink(String ip, int port, int special, int isN10);
+
+    /**
+     * invoke myself
+     */
+    private void rebootSelf() {
+        String pac = "com.example.mira4u";
+
+        Intent i = new Intent();
+        i.setClassName(pac, pac + ".P2pSinkActivity");
+        startActivity(i);
+    }
+
+    static {
+        System.loadLibrary("Mira4U");
+    }
+
+    /** discoverPeers loop */
+    private Timer mDiscoverPeersTimer;
+
+    /**
+     * discoverPeers 実行タスク
+     */
+    class DiscoverPeersTask extends TimerTask {
+        @Override
+        public void run() {
+            if (mConnected) {
+                stopDiscoverPeersTimer();
+            } else {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        onClickDiscoverPeers(null);
+                    }
+                });
+            }
+        }
+    }
+
+    private void startDiscoverPeersTimer() {
+        if (mDiscoverPeersTimer != null) {
+            return;
+        }
+
+        mDiscoverPeersTimer = new Timer();
+        DiscoverPeersTask task = new DiscoverPeersTask();
+        mDiscoverPeersTimer.scheduleAtFixedRate(task, 10, 1*1000*30); // 10ms後から30秒間隔でdiscoverPeers()を実行
+    }
+
+    private void stopDiscoverPeersTimer() {
+        if (mDiscoverPeersTimer == null) {
+            return;
+        }
+
+        mDiscoverPeersTimer.cancel();
+        mDiscoverPeersTimer = null;
+    }
+
+    private void finishSink(int result) {
+        setResult(result);
+        finish();
+        System.exit(0); // TODO really?
+    }
+
+    public void onClickFinishSink(View view) {
+        finishSink(FINISH_CODE_BUTTON);
+    }
+
+    public void onBackPressed() {
+        finishSink(FINISH_CODE_BACK);
+    }
+
+    private int getSpecialMode() {
+        SharedPreferences pref = getSharedPreferences("prefs", Context.MODE_WORLD_READABLE);
+        String s = pref.getString("persist.sys.wfd.specialmode", "0");
+        return s.equals("1") ? 1 : 0;
+    }
+
+    private int getNexus10() {
+        SharedPreferences pref = getSharedPreferences("prefs", Context.MODE_WORLD_READABLE);
+        String s = pref.getString("persist.sys.wfd.sinkisn10", "0");
+        return s.equals("1") ? 1 : 0;
+    }
+
+    private boolean isSinkAdapter() {
+        SharedPreferences pref = getSharedPreferences("prefs", Context.MODE_WORLD_READABLE);
+        String s = pref.getString("persist.sys.wfd.sinkloop", "0");
+        return s.equals("1");
     }
 
 }

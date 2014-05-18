@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-<!-- 
-    <string name="app_name">WiFiDirectTestApp</string>
-    <string name="app_about">About this App...</string>
- -->
+    <string name="button_finishSink">Finish Sink</string>
 
     <string name="button_broadcast_regist">BroadcastReceiver Registered</string>
     <string name="button_broadcast_unregist">BroadcastReceiver UnRegistered</string>
